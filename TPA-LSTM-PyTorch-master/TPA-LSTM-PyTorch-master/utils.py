@@ -35,21 +35,15 @@ class Data_utility(object):
         self._split(int(train * self.original_rows), int((train + valid) * self.original_rows), self.original_rows);
 
         self.scale = torch.from_numpy(self.scale).float();
-        list_of_tensors = [self.test[1][:, i, :] for i in range(self.test[1].size(1))]
-        list_of_tmp = [list_of_tensors[i] * self.scale.expand(list_of_tensors[i].size(0), self.original_columns) for i in range(self.test[1].size(1))];
+        tmp = self.test[1] * self.scale.expand(self.test[1].size(0), self.original_columns);
+
         if self.cuda:
             self.scale = self.scale.cuda();
         self.scale = Variable(self.scale);
 
         #rse and rae must be some sort of errors for now, will come back to them later
-        self.list_of_rse = [normal_std(list_of_tmp[i]) for i in range(self.test[1].size(1))];
-        # 计算list_of_rse的均值并添加到列表末尾
-        mean_rse = sum(self.list_of_rse) / len(self.list_of_rse)
-        self.list_of_rse.append(mean_rse)
-        self.list_of_rae = [torch.mean(torch.abs(list_of_tmp[i] - torch.mean(list_of_tmp[i]))) for i in range(self.test[1].size(1))];
-        # 计算list_of_rae的均值并添加到列表末尾
-        mean_rae = sum(self.list_of_rae) / len(self.list_of_rae)
-        self.list_of_rae.append(mean_rae)
+        self.rse = normal_std(tmp);
+        self.rae = torch.mean(torch.abs(tmp - torch.mean(tmp)));
 
     def _normalized(self, normalize):
         # normalized by the maximum value of entire matrix.
@@ -79,13 +73,13 @@ class Data_utility(object):
 
         n = len(idx_set);
         X = torch.zeros((n, self.window_length, self.original_columns));
-        Y = torch.zeros((n,horizon, self.original_columns));
+        Y = torch.zeros((n, self.original_columns));
 
         for i in range(n):
-            end = idx_set[i] - horizon + 1;
+            end = idx_set[i] - self.horizon + 1;
             start = end - self.window_length;
             X[i, :, :] = torch.from_numpy(self.normalized_data[start:end, :]);
-            Y[i,:, :] = torch.from_numpy(self.normalized_data[end:end+horizon, :]);
+            Y[i, :] = torch.from_numpy(self.normalized_data[idx_set[i], :]);
 
         """
             Here matrix X is 3d matrix where each of it's 2d matrix is the separate window which has to be sent in for training.
