@@ -85,7 +85,7 @@ class Model(nn.Module):
         if (args.output_fun == 'tanh'):
             self.output = F.tanh;
         # 在模型初始化中定义新的全连接层
-        #self.fc = nn.Linear(self.original_columns, 9)
+        self.fc = nn.Linear(self.original_columns, 9)
 
     def forward(self, x):
         batch_size = x.size(0);
